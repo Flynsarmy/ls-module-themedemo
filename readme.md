@@ -1,5 +1,5 @@
 # ls-module-theme-demo
-Adds improved image editing functionality to WYSIWYG fields.
+This module makes it easy to demo LS themes. It could also be used to add a 'View desktop site' link to mobile themes.
 
 ## Installation
 1. Download [Theme Demo](https://github.com/flynsarmy/ls-module-themedemo/zipball/master)
