@@ -67,6 +67,99 @@
 					return $theme;
 			}
 
-			return Cms_Theme::get_default_theme();
+
+
+
+			/**
+			 * Below this point shouldn't be necessary but is until
+			 * http://forum.lemonstandapp.com/tracker/issue-494-cmsongetactivetheme-event-should-ignore-non-object-responses/
+			 * is fixed.
+			 */
+
+
+
+
+
+			$themes = Db_DbHelper::objectArray('select id, agent_detection_mode, agent_list, agent_detection_code, name, code from cms_themes where is_enabled is not null and is_enabled=1 order by name');
+
+			/*
+			 * Try to select a theme based on the user agent
+			 */
+
+			$agent = Phpr::$request->getUserAgent();
+			$known_agents = self::get_agent_list();
+
+			foreach ($themes as $theme)
+			{
+				if (!$theme->agent_detection_mode || $theme->agent_detection_mode == Cms_Theme::agent_detection_disabled)
+					continue;
+
+				if ($theme->agent_detection_mode == Cms_Theme::agent_detection_built_in)
+				{
+					$theme_agents = Cms_Theme::decode_agent_list($theme->agent_list);
+					foreach ($theme_agents as $theme_agent_id)
+					{
+						foreach ($known_agents as $agent_id=>$agent_info)
+						{
+							if ($agent_id == $theme_agent_id && strpos($agent, $agent_info['signature']) !== false)
+								return Cms_Theme::create()->where('id=?', $theme->id)->find();
+						}
+					}
+				}
+
+				if (strlen($theme->agent_detection_code))
+				{
+					try
+					{
+						if (@eval($theme->agent_detection_code))
+							return Cms_Theme::create()->where('id=?', $theme->id)->find();
+					} catch (exception $ex)
+					{
+						throw new Phpr_SystemException(
+							sprintf('Error evaluating the user agent detection code for theme "%s (%s)". %s',
+								$theme->name,
+								$theme->code,
+								Core_String::finalize($ex->getMessage())
+							)
+						);
+					}
+				}
+			}
+
+			/*
+			 * Try to return a default theme
+			 */
+
+			$theme = Cms_Theme::get_default_theme();
+			if ($theme)
+				return $theme;
+
+			/*
+			 * Return the first theme in the list
+			 */
+
+			if (count($themes))
+				return Cms_Theme::create()->where('id=?', $themes[0]->id)->find();
+
+			return null;
+		}
+
+		/**
+		 * This method shouldn't be necessary but is until
+		 * http://forum.lemonstandapp.com/tracker/issue-494-cmsongetactivetheme-event-should-ignore-non-object-responses/
+		 * is fixed.
+		 */
+		protected static function get_agent_list()
+		{
+			return array(
+				'blackberry'=>array('name'=>'BlackBerry', 'signature'=>'BlackBerry'),
+				'android'=>array('name'=>'Android', 'signature'=>'Android'),
+				'ipad'=>array('name'=>'Apple iPad', 'signature'=>'iPad'),
+				'iphone'=>array('name'=>'Apple iPhone', 'signature'=>'iPhone'),
+				'ipod'=>array('name'=>'Apple iPod Touch', 'signature'=>'iPod'),
+				'google'=>array('name'=>'Googlebot', 'signature'=>'Googlebot'),
+				'msnbot'=>array('name'=>'Msnbot', 'signature'=>'msnbot'),
+				'yahoo'=>array('name'=>'Yahoo! Slurp', 'signature'=>'Yahoo! Slurp'),
+			);
 		}
 	}
