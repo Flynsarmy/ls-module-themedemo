@@ -1,3 +1,4 @@
 #1 Module initialization
 #2 Added access point for changing themes
 #3 Correctly fall back to user agent, default, first then no theme
+#4 Minor code update - see http://forum.lemonstandapp.com/tracker/issue-494-cmsongetactivetheme-event-should-ignore-non-object-responses/
